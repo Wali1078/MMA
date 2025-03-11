@@ -1,0 +1,70 @@
+CREATE TABLE weight_class (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(50) NOT NULL,
+  upper_limit DECIMAL(5,2) NOT NULL,
+  lower_limit DECIMAL(5,2),
+  gender VARCHAR(10) NOT NULL CHECK (gender IN ('male', 'female'))
+);
+
+CREATE TABLE fighter (
+  id SERIAL PRIMARY KEY,
+  first_name VARCHAR(50) NOT NULL,
+  last_name VARCHAR(50) NOT NULL,
+  nickname VARCHAR(100),
+  date_of_birth DATE NOT NULL,
+  nationality VARCHAR(50) NOT NULL,
+  team VARCHAR(100),
+  height DECIMAL(5,2),
+  weight DECIMAL(5,2),
+  reach DECIMAL(5,2),
+  weight_class_id INTEGER REFERENCES weight_class(id),
+  wins INTEGER NOT NULL DEFAULT 0,
+  losses INTEGER NOT NULL DEFAULT 0,
+  draws INTEGER NOT NULL DEFAULT 0,
+  no_contests INTEGER NOT NULL DEFAULT 0,
+  knockout_wins INTEGER NOT NULL DEFAULT 0,
+  submission_wins INTEGER NOT NULL DEFAULT 0,
+  decision_wins INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE event (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  date DATE NOT NULL,
+  venue VARCHAR(100) NOT NULL,
+  city VARCHAR(50) NOT NULL,
+  country VARCHAR(50) NOT NULL,
+  promotion VARCHAR(50) NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'completed', 'canceled'))
+);
+
+CREATE TABLE fight (
+  id SERIAL PRIMARY KEY,
+  event_id INTEGER REFERENCES event(id) NOT NULL,
+  fighter_a_id INTEGER REFERENCES fighter(id) NOT NULL,
+  fighter_b_id INTEGER REFERENCES fighter(id) NOT NULL,
+  weight_class_id INTEGER REFERENCES weight_class(id) NOT NULL,
+  winner_id INTEGER REFERENCES fighter(id),
+  result_method VARCHAR(20) CHECK (result_method IN ('knockout', 'submission', 'decision', 'draw', 'no contest', 'disqualification')),
+  result_round INTEGER,
+  result_time TIME,
+  fight_stats JSONB,
+  CHECK (fighter_a_id != fighter_b_id)
+);
+
+CREATE TABLE ranking (
+  id SERIAL PRIMARY KEY,
+  weight_class_id INTEGER REFERENCES weight_class(id) NOT NULL,
+  fighter_id INTEGER REFERENCES fighter(id) NOT NULL,
+  position INTEGER NOT NULL,
+  date DATE NOT NULL DEFAULT CURRENT_DATE,
+  UNIQUE (weight_class_id, fighter_id, date)
+);
+
+-- Indexes for performance
+CREATE INDEX idx_fighter_weight_class ON fighter(weight_class_id);
+CREATE INDEX idx_fight_event ON fight(event_id);
+CREATE INDEX idx_fight_fighters ON fight(fighter_a_id, fighter_b_id);
+CREATE INDEX idx_fight_winner ON fight(winner_id);
+CREATE INDEX idx_ranking_weight_class ON ranking(weight_class_id);
+CREATE INDEX idx_ranking_fighter ON ranking(fighter_id);
